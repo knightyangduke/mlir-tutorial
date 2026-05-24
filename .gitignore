@@ -13,11 +13,8 @@ MODULE.bazel.lock
 /build*
 
 # Visual Studio built-in CMake configuration
-.vscode*
 /CMakeSettings.json
 # Compilation databases
-compile_commands.json
-tablegen_compile_commands.yml
 
 # Cache directory
 .cache/

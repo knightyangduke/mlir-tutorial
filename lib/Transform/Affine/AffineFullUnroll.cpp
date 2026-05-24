@@ -24,6 +24,7 @@ struct AffineFullUnroll : impl::AffineFullUnrollBase<AffineFullUnroll> {
       }
     });
   }
+
 };
 
 

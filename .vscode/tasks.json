@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "clangd: check current file",
+      "type": "shell",
+      "command": "/home/yeyang/.vscode-server/data/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install/19.1.2/clangd_19.1.2/bin/clangd",
+      "args": [
+        "--check=${file}"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "group": "build"
+    },
+    {
+      "label": "syntax-check current file",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/.vscode/syntax_check.py",
+        "${file}"
+      ],
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "group": "build"
+    }
+  ]
+}
