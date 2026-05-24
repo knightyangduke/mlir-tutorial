@@ -9,8 +9,9 @@ MODULE.bazel.lock
 # ignore the user specified CMake presets in subproject directories.
 /*/CMakeUserPresets.json
 
-# Nested build directory
-/build*
+# Nested build directory (ignore everything except compile_commands.json)
+/build*/
+!/build*/compile_commands.json
 
 # Visual Studio built-in CMake configuration
 /CMakeSettings.json
