@@ -18,3 +18,6 @@ MODULE.bazel.lock
 # Compilation databases
 compile_commands.json
 tablegen_compile_commands.yml
+
+# Cache directory
+.cache/

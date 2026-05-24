@@ -3,6 +3,7 @@
 
 #include "lib/Transform/Arith/MulToAdd.h"
 #include "lib/Transform/Arith/MulToAddPdll.h"
+#include "lib/Transform/Arith/MulToShift.h"
 
 namespace mlir {
 namespace tutorial {

@@ -4,8 +4,10 @@ add_mlir_pdll_library(MulToAddPdllIncGen
 )
 
 add_mlir_library(MulToAdd
+    ArithPatterns.cpp
     MulToAdd.cpp
     MulToAddPdll.cpp
+    MulToShift.cpp
 
     ${PROJECT_SOURCE_DIR}/lib/Transform/Arith/
     ADDITIONAL_HEADER_DIRS

@@ -1,0 +1,7 @@
+CompileFlags:
+  CompilationDatabase: build-ninja
+
+Index:
+  Background: Build
+  External:
+    File: /home/yeyang/llvm-project/build-release/compile_commands.json

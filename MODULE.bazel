@@ -65,11 +65,11 @@ _LLVM_TARGETS = [
 ]
 
 # Configure LLVM project using use_repo_rule
-llvm_configure = use_repo_rule("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure")
-llvm_configure(
-    name = "llvm-project",
-    targets = _LLVM_TARGETS,
-)
+#llvm_configure = use_repo_rule("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure")
+#llvm_configure(
+#    name = "llvm-project",
+#    targets = _LLVM_TARGETS,
+#)
 
 # Configure Python dependencies
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
@@ -82,4 +82,11 @@ pip.parse(
     python_version = "3.13",
     requirements_lock = "//:requirements.txt",
 )
-use_repo(pip, "mlir_tutorial_pip_deps") 
+use_repo(pip, "mlir_tutorial_pip_deps")
+
+# 1. Declare the dependency (even with a dummy version, since the override replaces it)
+bazel_dep(name = "llvm-project", version = "17.0.0")
+local_path_override(
+    module_name = "llvm-project",
+    path = "/home/yeyang/llvm-project",
+)

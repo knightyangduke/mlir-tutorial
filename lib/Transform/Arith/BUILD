@@ -33,8 +33,21 @@ gentbl_cc_library(
 
 cc_library(
     name = "MulToAdd",
-    srcs = ["MulToAdd.cpp"],
-    hdrs = ["MulToAdd.h"],
+    srcs = ["ArithPatterns.cpp", "MulToAdd.cpp"],
+    hdrs = ["MulToAdd.h", "ArithPatterns.h"],
+    deps = [
+        ":pass_inc_gen",
+        "@llvm-project//mlir:ArithDialect",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Transforms",
+    ],
+)
+
+cc_library(
+    name = "MulToShift",
+    srcs = ["MulToShift.cpp"],
+    hdrs = ["MulToShift.h"],
     deps = [
         ":pass_inc_gen",
         "@llvm-project//mlir:ArithDialect",
@@ -50,6 +63,7 @@ cc_library(
     deps = [
         ":MulToAdd",
         ":MulToAddPdll",
+        ":MulToShift",
         ":pass_inc_gen",
     ],
 )

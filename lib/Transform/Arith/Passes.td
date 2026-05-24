@@ -23,4 +23,11 @@ def MulToAddPdll : Pass<"mul-to-add-pdll"> {
 ];
 }
 
+def MulToShift : Pass<"mul-to-shift"> {
+  let summary = "Convert multiplications to shifts";
+  let description = [{
+    Convert multiplications to shifts when it is a power of two.
+  }];
+}
+
 #endif  // LIB_TRANSFORM_ARITH_PASSES_TD_
