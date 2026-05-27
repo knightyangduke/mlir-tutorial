@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug tutorial-opt",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-ninja/tools/tutorial-opt",
+            "args": ["-sccp", "../tests/sccp.mlir"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build-ninja",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                  "description": "Load LLVM pretty-printers",
+                  "text": "python import sys; sys.path.insert(0, '/home/yeyang/llvm-project/llvm/utils/gdb-scripts'); import prettyprinters",
+                  "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

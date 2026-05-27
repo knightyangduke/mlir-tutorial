@@ -1,27 +1,41 @@
 # Inlining `add_mlir_dialect(Poly poly)` commands so that
 # we can custom name `*.inc` generated files.
+
+# --- TableGen: Op, Type, and Dialect code generation ---
+# PolyOps.td is the single entry point; it transitively includes
+# PolyDialect.td and PolyTypes.td, so one LLVM_TARGET_DEFINITIONS suffices.
+# All mlir_tablegen calls below implicitly use this file as input.
 set(LLVM_TARGET_DEFINITIONS PolyOps.td)
-mlir_tablegen(PolyOps.h.inc -gen-op-decls)
-mlir_tablegen(PolyOps.cpp.inc -gen-op-defs)
-mlir_tablegen(PolyTypes.h.inc -gen-typedef-decls -typedefs-dialect=poly)
-mlir_tablegen(PolyTypes.cpp.inc -gen-typedef-defs -typedefs-dialect=poly)
-mlir_tablegen(PolyDialect.h.inc -gen-dialect-decls -dialect=poly)
-mlir_tablegen(PolyDialect.cpp.inc -gen-dialect-defs -dialect=poly)
+mlir_tablegen(PolyOps.h.inc     -gen-op-decls)                             # Op class declarations
+mlir_tablegen(PolyOps.cpp.inc   -gen-op-defs)                              # Op method bodies
+mlir_tablegen(PolyTypes.h.inc   -gen-typedef-decls -typedefs-dialect=poly) # Type declarations  (-typedefs-dialect filters out MLIR built-in types)
+mlir_tablegen(PolyTypes.cpp.inc -gen-typedef-defs  -typedefs-dialect=poly) # Type method bodies
+mlir_tablegen(PolyDialect.h.inc   -gen-dialect-decls -dialect=poly)        # Dialect class declaration
+mlir_tablegen(PolyDialect.cpp.inc -gen-dialect-defs  -dialect=poly)        # Dialect method bodies
+# Bundle the above .inc outputs into one target; also appends to LLVM_COMMON_DEPENDS
+# so add_mlir_dialect_library below automatically depends on it.
 add_public_tablegen_target(MLIRPolyOpsIncGen)
+# Make the global mlir-headers umbrella target wait for our .inc files.
 add_dependencies(mlir-headers MLIRPolyOpsIncGen)
 
 add_mlir_doc(PolyDialect PolyDialect Poly/ -gen-dialect-doc)
 
+# --- TableGen: DRR canonicalization patterns ---
 set(LLVM_TARGET_DEFINITIONS PolyPatterns.td)
-mlir_tablegen(PolyCanonicalize.cpp.inc -gen-rewriters)
-add_public_tablegen_target(MLIRPolyCanonicalizationIncGen)
+mlir_tablegen(PolyCanonicalize.cpp.inc -gen-rewriters) # C++ rewrite pattern boilerplate
+add_public_tablegen_target(MLIRPolyCanonicalizationIncGen) # also appended to LLVM_COMMON_DEPENDS
 
+# --- C++ library ---
+# Compiles PolyDialect.cpp and PolyOps.cpp into the MLIRPoly library.
+# Automatically links MLIR core libs and depends on both tablegen targets
+# above via LLVM_COMMON_DEPENDS (no manual add_dependencies needed).
 add_mlir_dialect_library(MLIRPoly
     PolyDialect.cpp
     PolyOps.cpp
 
     ADDITIONAL_HEADER_DIRS
-    ${PROJECT_SOURCE_DIR}/lib/Dialect/Poly
+    ${PROJECT_SOURCE_DIR}/lib/Dialect/Poly  # allows #include "PolyOps.h" etc.
 
     LINK_LIBS PUBLIC
+    # No extra deps: MLIR core libs are linked automatically by the macro.
     )

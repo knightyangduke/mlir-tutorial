@@ -26,6 +26,11 @@ void PolyDialect::initialize() {
       >();
 }
 
+// Required by the dialect interface so that MLIR's constant folding and
+// canonicalization infrastructure can turn a folded Attribute back into an
+// SSA value.  Without this, any pass that folds a poly operation to a
+// constant attribute (e.g. constant propagation) would be unable to
+// re-materialize that attribute as an operation and would silently drop it.
 Operation *PolyDialect::materializeConstant(OpBuilder &builder, Attribute value,
                                             Type type, Location loc) {
   auto coeffs = dyn_cast<DenseIntElementsAttr>(value);

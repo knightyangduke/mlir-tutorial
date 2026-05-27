@@ -15,6 +15,8 @@ def Polynomial : Poly_Type<"Polynomial", "poly"> {
   let description = [{
     A type for polynomials with integer coefficients in a single-variable polynomial ring.
   }];
+  // Example (ring Z[x] / (x^3072 + 1)):
+  //   !poly.poly<3072>
 
   let parameters = (ins "int":$degreeBound);
   let assemblyFormat = "`<` $degreeBound `>`";

@@ -11,14 +11,23 @@ namespace mlir {
 namespace tutorial {
 namespace poly {
 
+
+// OpFoldResult is a utility type in MLIR that represents the result of constant folding.
+// It can hold an Attribute (the folded constant), a Value, or be null to indicate folding failed.
+// This allows the canonicalization infrastructure to propagate constants through the IR.
+//
+// The FoldAdaptor provides a type-safe way to access the operands and attributes of the operation.
+// It bundles together the operation's inputs, making folding code easier to write and maintain.
 OpFoldResult ConstantOp::fold(ConstantOp::FoldAdaptor adaptor) {
   return adaptor.getCoefficients();
 }
+
 
 OpFoldResult AddOp::fold(AddOp::FoldAdaptor adaptor) {
   return constFoldBinaryOp<IntegerAttr, APInt, void>(
       adaptor.getOperands(), [&](APInt a, APInt b) { return a + b; });
 }
+
 
 OpFoldResult SubOp::fold(SubOp::FoldAdaptor adaptor) {
   return constFoldBinaryOp<IntegerAttr, APInt, void>(
@@ -40,14 +49,17 @@ OpFoldResult MulOp::fold(MulOp::FoldAdaptor adaptor) {
     result.push_back(APInt((*lhs.begin()).getBitWidth(), 0));
   }
 
+  // Schoolbook polynomial multiplication: for each pair of coefficients
+  // lhs[i] and rhs[j], their product contributes to the coefficient of x^(i+j)
+  // in the result.  The index is taken modulo `degree` because the polynomial
+  // ring is defined as Z[x] / (x^N - 1), so x^N wraps back to x^0.
   int i = 0;
   for (auto lhsIt = lhs.value_begin<APInt>(); lhsIt != lhs.value_end<APInt>();
        ++lhsIt) {
     int j = 0;
     for (auto rhsIt = rhs.value_begin<APInt>(); rhsIt != rhs.value_end<APInt>();
          ++rhsIt) {
-      // index is modulo degree because poly's semantics are defined modulo x^N
-      // = 1.
+      // Accumulate lhs[i] * rhs[j] into result[(i+j) mod N].
       result[(i + j) % degree] += *rhsIt * (*lhsIt);
       ++j;
     }
