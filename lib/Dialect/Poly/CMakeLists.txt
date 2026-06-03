@@ -15,7 +15,11 @@ mlir_tablegen(PolyDialect.cpp.inc -gen-dialect-defs  -dialect=poly)        # Dia
 # Bundle the above .inc outputs into one target; also appends to LLVM_COMMON_DEPENDS
 # so add_mlir_dialect_library below automatically depends on it.
 add_public_tablegen_target(MLIRPolyOpsIncGen)
-# Make the global mlir-headers umbrella target wait for our .inc files.
+# mlir-headers is the global MLIR umbrella target meaning "all generated headers
+# are ready".  Adding MLIRPolyOpsIncGen as a dependency means mlir-headers
+# depends on MLIRPolyOpsIncGen, so MLIRPolyOpsIncGen must be built FIRST.
+# Without this, building mlir-opt or other targets that depend on mlir-headers
+# could fail because Poly's .inc files wouldn't exist yet.
 add_dependencies(mlir-headers MLIRPolyOpsIncGen)
 
 add_mlir_doc(PolyDialect PolyDialect Poly/ -gen-dialect-doc)

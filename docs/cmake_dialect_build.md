@@ -93,8 +93,19 @@ add_dependencies(mlir-headers MLIRPolyOpsIncGen)
 ```
 
 `mlir-headers` is a global MLIR umbrella target meaning "all generated headers
-are ready". Adding `MLIRPolyOpsIncGen` as a dependency ensures the poly `.inc`
-files are generated before any target that depends on `mlir-headers` compiles.
+are ready".
+
+**Important: dependency direction.** In CMake, `add_dependencies(A B)` means
+**A depends on B**, so **B must be built before A**. Here that means
+`MLIRPolyOpsIncGen` must finish generating all `.inc` files **before**
+`mlir-headers` is considered complete.
+
+Why is this necessary? MLIR's top-level targets (like `mlir-opt`,
+`libMLIR.so`, etc.) commonly depend on `mlir-headers` so that all generated
+headers are available before compilation starts. Without this line,
+`mlir-headers` wouldn't know about the Poly dialect, and building `mlir-opt`
+could fail with missing `PolyOps.h.inc` or similar errors — because the Poly
+headers would never be generated.
 
 ---
 
@@ -145,13 +156,32 @@ The `LLVM_COMMON_DEPENDS` dependency wiring means you never need to write
 ## Full Build Dependency Graph
 
 ```
-PolyOps.td ──[tablegen × 6]──► MLIRPolyOpsIncGen ──────────────────────┐
-                                      │                                  │
-                                      └──► mlir-headers                 │
-                                                                         ▼
-PolyPatterns.td ──[tablegen × 1]──► MLIRPolyCanonicalizationIncGen ──► MLIRPoly
-                                                                         ▲
-                                    PolyDialect.cpp, PolyOps.cpp ────────┘
+Legend:
+  ──►  "generates / produces"  (the arrow points from source to output)
+  ═══► "depends on"            (the arrow points from consumer to dependency;
+                                 dependency must be built first)
+
+Generation (tablegen runs):
+  PolyOps.td ──[tablegen × 6]──► MLIRPolyOpsIncGen
+  PolyPatterns.td ──[tablegen]──► MLIRPolyCanonicalizationIncGen
+
+Dependency (build order — built bottom-up):
+  MLIRPolyOpsIncGen ◄═══ mlir-headers              # mlir-headers depends on IncGen
+  MLIRPolyOpsIncGen ◄═══ MLIRPoly                  # via LLVM_COMMON_DEPENDS
+  MLIRPolyCanonicalizationIncGen ◄═══ MLIRPoly     # via LLVM_COMMON_DEPENDS
+  PolyDialect.cpp, PolyOps.cpp ◄═══ MLIRPoly       # compiled into the library
+
+Equivalent tree view (build order: leaf → root):
+  MLIRPolyOpsIncGen   MLIRPolyCanonicalizationIncGen   PolyDialect.cpp
+         ║                        ║                    PolyOps.cpp
+         ║                        ║                         ║
+         ╚════════════╗  ╔════════╝                         ║
+                      ▼  ▼                                  ▼
+                   MLIRPoly ◄═══════════════════════════════╝
+                      ║
+                      ║  (via add_dependencies)
+                      ║
+               mlir-headers
 ```
 
 ---

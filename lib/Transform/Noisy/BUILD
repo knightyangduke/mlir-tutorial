@@ -48,9 +48,27 @@ cc_library(
 )
 
 cc_library(
+    name = "ReduceNoiseChecker",
+    srcs = ["ReduceNoiseChecker.cpp"],
+    hdrs = [
+        "Passes.h",
+        "ReduceNoiseChecker.h",
+    ],
+    deps = [
+        ":pass_inc_gen",
+        "//lib/Dialect/Noisy",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Analysis",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Transforms",
+    ],
+)
+
+cc_library(
     name = "Passes",
     hdrs = ["Passes.h"],
     deps = [
+        ":ReduceNoiseChecker",
         ":ReduceNoiseOptimizer",
         ":pass_inc_gen",
     ],

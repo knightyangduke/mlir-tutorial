@@ -12,4 +12,12 @@ def ReduceNoiseOptimizer : Pass<"noisy-reduce-noise-optimizer"> {
   let dependentDialects = ["mlir::tutorial::noisy::NoisyDialect"];
 }
 
+def ReduceNoiseChecker : Pass<"noisy-reduce-noise-checker"> {
+  let summary = "Check if the noise is above certain threshold";
+  let description = [{
+    loop through the IR and check if the noise is above certain threshold. If it is, emit an error.
+  }];
+  let dependentDialects = ["mlir::tutorial::noisy::NoisyDialect"];
+}
+
 #endif  // LIB_TRANSFORM_NOISY_PASSES_TD_

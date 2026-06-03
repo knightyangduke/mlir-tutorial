@@ -1,4 +1,5 @@
 add_mlir_library(NoisyPasses
+    ReduceNoiseChecker.cpp
     ReduceNoiseOptimizer.cpp
 
     ${PROJECT_SOURCE_DIR}/lib/Transform/Noisy/

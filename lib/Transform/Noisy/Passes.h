@@ -1,6 +1,7 @@
 #ifndef LIB_TRANSFORM_NOISY_PASSES_H_
 #define LIB_TRANSFORM_NOISY_PASSES_H_
 
+#include "lib/Transform/Noisy/ReduceNoiseChecker.h"
 #include "lib/Transform/Noisy/ReduceNoiseOptimizer.h"
 
 namespace mlir {

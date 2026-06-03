@@ -23,14 +23,35 @@ If they survive, the pass fails — the conversion was incomplete.
 2. When ops consuming the old types are not converted but their operands **are** converted, the framework inserts `unrealized_conversion_cast` to patch the type mismatch.
 3. If the consuming op is never legalized/converted, the cast remains → pass failure.
 
+### The root cause: `ConversionTarget` legalization
+
+Whether a dialect conversion pass errors on leftover casts depends on its **`ConversionTarget`**:
+
+- The dialect conversion framework checks every op against the target's legality rules.
+- If `UnrealizedConversionCastOp` is **not** explicitly marked legal, the framework sees it as an illegal op → **error**.
+- If the target explicitly calls `addLegalOp<UnrealizedConversionCastOp>()`, the cast is considered legal and survives without error.
+
+**Example — `LLVMConversionTarget`** (used by `convert-func-to-llvm` et al.):
+
+```cpp
+LLVMConversionTarget::LLVMConversionTarget(MLIRContext &ctx)
+    : ConversionTarget(ctx) {
+  this->addLegalDialect<LLVM::LLVMDialect>();
+  this->addLegalOp<UnrealizedConversionCastOp>();  // ← casts are LEGAL
+}
+```
+
+This is intentional: LLVM-lowering passes are part of a **multi-pass pipeline** where casts persist across passes and are cleaned up at the end by `reconcile-unrealized-casts`. In contrast, a self-contained dialect conversion like `--poly-to-standard` uses a target that does **not** legalize the cast, so any leftover triggers a framework error.
+
 ### When is it OK to leave unrealized_conversion_cast?
 
-| Scenario | OK? |
-|---|---|
-| Cast inserted mid-pass, resolved by end | ✅ Normal operation |
-| Cast survives end of `applyFullConversion` | ❌ Framework error |
-| Cast survives end of `applyPartialConversion` | ❌ Framework error (unless explicitly marked legal) |
-| Multi-pass lowering with materialization hooks | ✅ Casts resolved across passes |
+| Scenario | OK? | Why |
+|---|---|---|
+| Cast inserted mid-pass, resolved by end | ✅ | Normal operation — cast is transient |
+| Cast survives end of `applyFullConversion` | ❌ | Target requires *all* ops legalized; `UnrealizedConversionCastOp` not marked legal |
+| Cast survives end of `applyPartialConversion` | ❌ | Same check — unless target explicitly calls `addLegalOp<UnrealizedConversionCastOp>()` |
+| Pass target explicitly legalizes the cast | ✅ | e.g., `LLVMConversionTarget` — designed for multi-pass lowering |
+| Multi-pass lowering with `reconcile-unrealized-casts` | ✅ | Casts persist across passes, then removed by dedicated cleanup pass |
 
 ## Common root causes
 
