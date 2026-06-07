@@ -12,27 +12,30 @@ Constraint MinusOne(attr: Attr) -> Attr;
 // Replace y = C*x with y = C/2*x + C/2*x, when C is a power of 2, otherwise do
 // nothing.
 Pattern PowerOfTwoExpandRhs with benefit(2) {
+  //{value = const: Attr} => matches a attribute named "value" and binds it to `const`.
   let root = op<arith.muli>(op<arith.constant> {value = const: Attr}, rhs: Value);
   IsPowerOfTwo(const);
   let halved: Attr = Halve(const);
 
   rewrite root with {
-    let newConst = op<arith.constant> {value = halved};
-    let newMul = op<arith.muli>(newConst, rhs);
-    let newAdd = op<arith.addi>(newMul, newMul);
+    let newConst = op<arith.constant> {value = halved};//lhs is C/2, so newMul is C/2*x
+    let newMul = op<arith.muli>(newConst, rhs);// rhs is x, newConst is C/2, so newMul is C/2*x
+    let newAdd = op<arith.addi>(newMul, newMul);// newMul is C/2*x, so newAdd is C/2*x + C/2*x
     replace root with newAdd;
   };
 }
 
+// Replace y = x*C with y = x*C/2 +  x*C/2, when C is a power of 2, otherwise do
+// nothing.
 Pattern PowerOfTwoExpandLhs with benefit(2) {
   let root = op<arith.muli>(lhs: Value, op<arith.constant> {value = const: Attr});
   IsPowerOfTwo(const);
   let halved: Attr = Halve(const);
 
   rewrite root with {
-    let newConst = op<arith.constant> {value = halved};
-    let newMul = op<arith.muli>(lhs, newConst);
-    let newAdd = op<arith.addi>(newMul, newMul);
+    let newConst = op<arith.constant> {value = halved};//lhs is x, newConst is C/2, so newMul is x*C/2
+    let newMul = op<arith.muli>(lhs, newConst);//lhs is x, newConst is C/2, so newMul is x*C/2
+    let newAdd = op<arith.addi>(newMul, newMul);//  newMul is x*C/2, so newAdd is x*C/2 + x*C/2
     replace root with newAdd;
   };
 }
@@ -48,12 +51,13 @@ Pattern PeelFromMulRhs with benefit(1) {
 
   rewrite root with {
     let newConst = op<arith.constant> {value = minusOne};
-    let newMul = op<arith.muli>(lhs, newConst);
-    let newAdd = op<arith.addi>(newMul, lhs);
+    let newMul = op<arith.muli>(lhs, newConst);//lhs is x, newConst is 8, so newMul is 8*x
+    let newAdd = op<arith.addi>(newMul, lhs);//lhs is x, so newAdd is 8*x + x
     replace root with newAdd;
   };
 }
 
+// Replace y = x*9 with y = x*8 + x
 Pattern PeelFromMulLhs with benefit(1) {
   let root = op<arith.muli>(op<arith.constant> {value = const: Attr}, rhs: Value);
   let minusOne: Attr = MinusOne(const);
