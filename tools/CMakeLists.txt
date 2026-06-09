@@ -15,9 +15,24 @@ set (LIBS
     ortools::ortools
 )
 
-add_llvm_executable(tutorial-opt tutorial-opt.cpp)
+add_llvm_executable(tutorial-opt PARTIAL_SOURCES_INTENDED tutorial-opt.cpp)
 
 llvm_update_compile_flags(tutorial-opt)
 target_link_libraries(tutorial-opt PRIVATE ${LIBS})
 
 mlir_check_all_link_libraries(tutorial-opt)
+
+# --- LSP Server ---
+set(LSP_LIBS
+    ${dialect_libs}
+    MLIRLspServerLib
+    MLIRPoly
+    MLIRNoisy
+)
+
+add_llvm_executable(tutorial-lsp-server PARTIAL_SOURCES_INTENDED tutorial-lsp-server.cpp)
+
+llvm_update_compile_flags(tutorial-lsp-server)
+target_link_libraries(tutorial-lsp-server PRIVATE ${LSP_LIBS})
+
+mlir_check_all_link_libraries(tutorial-lsp-server)
