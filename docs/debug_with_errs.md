@@ -83,3 +83,51 @@ Available helpers:
 ```
 
 Calling `dumpOp(op.getOperation())` directly will **not** work — `getOperation()` is inlined and unavailable as a call target in GDB.
+
+## GDB Convenience Commands
+
+A Python script (`.vscode/gdb_mlir_helpers.py`) provides shorthand GDB commands. It auto-loads in VS Code debug sessions. Available commands from the **Debug Console**:
+
+| Command | Equivalent C++ call |
+|---------|-------------------|
+| `mlir-dump-op <expr>` | `dumpOp(expr, 0)` |
+| `mlir-dump-val <expr>` | `dumpValue(expr, 0)` |
+| `mlir-dump-region <expr>` | `dumpRegion(*expr, 0)` |
+| `mlir-dump-all` | Verifies all 4 helpers are callable |
+
+Example usage at a breakpoint:
+
+```
+mlir-dump-all                     # verify symbols loaded
+mlir-dump-op constOp.state      # dump a ConstantOp
+mlir-dump-val lhs                # dump a Value
+```
+
+## Automated Verification
+
+Run the end-to-end test to confirm debugging works:
+
+```bash
+python3 scripts/test_debug_live.py
+```
+
+This launches `tutorial-opt` under GDB, sets a breakpoint in `MultiplyConstOne::matchAndRewrite`, calls `dumpOp()`, and checks that IR output appears on stderr. Use this after building to confirm the debug setup is functional.
+
+Also check symbol presence manually:
+
+```bash
+python3 scripts/verify_debug.py build-ninja/tools/tutorial-opt
+```
+
+## How It All Fits Together
+
+```
+DebugHelper.h      — function declarations
+DebugHelper.cpp    — implementations (__attribute__((used, noinline)))
+  ↓ compiled into
+tutorial-opt       — via tools/CMakeLists.txt (--no-gc-sections keeps symbols)
+  ↓ symbols callable from
+GDB / VS Code      — via .vscode/gdb_mlir_helpers.py convenience commands
+  ↓ verified by
+test_debug_live.py — end-to-end GDB breakpoint test
+```

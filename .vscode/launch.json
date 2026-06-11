@@ -25,6 +25,11 @@
                   "description": "Load LLVM pretty-printers",
                   "text": "python import sys; sys.path.insert(0, '/home/yeyang/llvm-project/llvm/utils/gdb-scripts'); import prettyprinters",
                   "ignoreFailures": true
+                },
+                {
+                  "description": "Load MLIR debug helpers",
+                  "text": "source ${workspaceFolder}/.vscode/gdb_mlir_helpers.py",
+                  "ignoreFailures": false
                 }
             ]
         },
@@ -52,6 +57,11 @@
                   "description": "Load LLVM pretty-printers",
                   "text": "python import sys; sys.path.insert(0, '/home/yeyang/llvm-project/llvm/utils/gdb-scripts'); import prettyprinters",
                   "ignoreFailures": true
+                },
+                {
+                  "description": "Load MLIR debug helpers",
+                  "text": "source ${workspaceFolder}/.vscode/gdb_mlir_helpers.py",
+                  "ignoreFailures": false
                 }
             ]
         },
