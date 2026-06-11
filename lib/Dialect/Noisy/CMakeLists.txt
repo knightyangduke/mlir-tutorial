@@ -18,4 +18,7 @@ add_mlir_dialect_library(MLIRNoisy
 
     ADDITIONAL_HEADER_DIRS
     ${PROJECT_SOURCE_DIR}/lib/Dialect/Noisy
-    )
+    ${PROJECT_SOURCE_DIR}/lib/Utility/
+
+    LINK_LIBS PUBLIC
+      )

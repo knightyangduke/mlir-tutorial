@@ -9,6 +9,7 @@ add_mlir_library(PolyTransform
     # that belong to this library. Using PROJECT_SOURCE_DIR makes the path
     # absolute and independent of the build directory.
     ${PROJECT_SOURCE_DIR}/lib/Transform/Poly/
+    ${PROJECT_SOURCE_DIR}/lib/Utility/
     ADDITIONAL_HEADER_DIRS
 
     # List build targets that must be completed before this library is built.

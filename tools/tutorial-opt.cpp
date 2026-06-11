@@ -1,6 +1,8 @@
 #include "lib/Conversion/PolyToStandard/PolyToStandard.h"
 #include "lib/Dialect/Noisy/NoisyDialect.h"
 #include "lib/Dialect/Poly/PolyDialect.h"
+#include "lib/Utility/DebugHelper.h"
+
 #include "lib/Transform/Affine/Passes.h"
 #include "lib/Transform/Arith/Passes.h"
 #include "lib/Transform/Noisy/Passes.h"

@@ -25,10 +25,15 @@ set (LIBS
 # Build the tutorial-opt executable from tutorial-opt.cpp.
 # PARTIAL_SOURCES_INTENDED tells LLVM's build system that only a subset of
 # source files are listed here; it prevents automatic source scanning.
-add_llvm_executable(tutorial-opt PARTIAL_SOURCES_INTENDED tutorial-opt.cpp)
+add_llvm_executable(tutorial-opt PARTIAL_SOURCES_INTENDED
+    tutorial-opt.cpp
+    ${PROJECT_SOURCE_DIR}/lib/Utility/DebugHelper.cpp
+)
 
 # Apply LLVM compile flags (warnings, optimization level, etc.).
 llvm_update_compile_flags(tutorial-opt)
+# Disable --gc-sections so debug helper symbols survive in the binary for GDB.
+target_link_options(tutorial-opt PRIVATE -Wl,--no-gc-sections)
 # Link all the libraries listed above.
 # PRIVATE means these libraries are linked only into tutorial-opt itself,
 # and are NOT propagated to anything that depends on tutorial-opt

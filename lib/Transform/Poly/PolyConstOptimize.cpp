@@ -7,7 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "lib/Dialect/Poly/PolyOps.h"
+#include "lib/Utility/DebugHelper.h"
 #include "mlir/IR/PatternMatch.h"
+
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
@@ -37,9 +39,20 @@ struct MultiplyConstOne : public OpRewritePattern<MulOp> {
 
   LogicalResult matchAndRewrite(MulOp op,
                                 PatternRewriter &rewriter) const override {
+    llvm::errs() << "MultiplyConstOne: attempting\n";
+    llvm::errs().flush();
+
     // Operands of the multiplication (commutative — constant may be on either side).
     Value lhs = op.getOperand(0);
     Value rhs = op.getOperand(1);
+
+    llvm::errs() << "  LHS: " << lhs << "\n";
+    llvm::errs() << "  RHS: " << rhs << "\n";
+    if (auto constOp = lhs.getDefiningOp<ConstantOp>())
+      llvm::errs() << "  LHS is ConstantOp\n";
+    if (auto constOp = rhs.getDefiningOp<ConstantOp>())
+      llvm::errs() << "  RHS is ConstantOp\n";
+    llvm::errs().flush();
 
     // Try to get a ConstantOp from either operand.
     // Type: mlir::tutorial::poly::ConstantOp (or null)
@@ -51,15 +64,28 @@ struct MultiplyConstOne : public OpRewritePattern<MulOp> {
       nonConst = lhs;
     }
     if (!constOp) {
+      llvm::errs() << "  No ConstantOp found, failing\n";
+      llvm::errs().flush();
       return failure();
     }
 
     // Extract the dense integer coefficients from the constant.
     // Type: llvm::iterator_range<DenseElementIterators<int64_t>>
-    auto coeffs = constOp.getCoefficients().getValues<int64_t>();
+    auto coeffs = constOp.getCoefficients().getValues<APInt>();
+
+    // Debug: print coefficients
+    llvm::errs() << "MultiplyConstOne checking: ";
+    for (APInt v : coeffs) llvm::errs() << v.getSExtValue() << " ";
+    llvm::errs() << "\n";
+    llvm::errs().flush();
+
+    //dumpOp(constOp.getOperation());
+
+    // Re-fetch coefficients since the range may be consumed by the debug loop.
+    auto coeffs2 = constOp.getCoefficients().getValues<APInt>();
 
     // Succeed only when every coefficient equals 1 (the multiplicative identity).
-    bool allOne = llvm::all_of(coeffs, [](int64_t v) { return v == 1; });
+    bool allOne = llvm::all_of(coeffs2, [](APInt v) { return v.isOne(); });
     if (!allOne) {
       return failure();
     }
@@ -101,11 +127,20 @@ struct AddConstZero : public OpRewritePattern<AddOp> {
     }
 
     // Extract the dense integer coefficients from the constant.
-    // Type: llvm::iterator_range<DenseElementIterators<int64_t>>
-    auto coeffs = constOp.getCoefficients().getValues<int64_t>();
+    // Type: llvm::iterator_range<DenseElementIterators<APInt>>
+    auto coeffs = constOp.getCoefficients().getValues<APInt>();
+
+    // Debug: print coefficients
+    llvm::errs() << "AddConstZero checking: ";
+    for (APInt v : coeffs) llvm::errs() << v.getSExtValue() << " ";
+    llvm::errs() << "\n";
+    llvm::errs().flush();
+
+    // Re-fetch coefficients since the range may be consumed by the debug loop.
+    auto coeffs2 = constOp.getCoefficients().getValues<APInt>();
 
     // Succeed only when every coefficient equals 0 (the additive identity).
-    bool allZero = llvm::all_of(coeffs, [](int64_t v) { return v == 0; });
+    bool allZero = llvm::all_of(coeffs2, [](APInt v) { return v.isZero(); });
     if (!allZero) {
       return failure();
     }
@@ -127,6 +162,8 @@ struct OptimizePolyConst
   using OptimizePolyConstBase::OptimizePolyConstBase;
 
   void runOnOperation() {
+    llvm::errs() << "OptimizePolyConst pass running\n";
+    llvm::errs().flush();
     mlir::RewritePatternSet patterns(&getContext());
     patterns.add<MultiplyConstOne>(&getContext());
     patterns.add<AddConstZero>(&getContext());
