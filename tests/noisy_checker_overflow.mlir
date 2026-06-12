@@ -1,4 +1,11 @@
-// RUN: tutorial-opt %s --noisy-reduce-noise-checker 2>&1 | FileCheck %s
+// RUN: { tutorial-opt %s --noisy-reduce-noise-checker 2>&1 || true; } | FileCheck %s
+// The `{ ... || true; }` wrapper is needed because:
+//   1. The pass reports an error (noise overflow) → tutorial-opt exits 1
+//   2. lit's test runner uses `set -o pipefail`, so the pipeline exit code
+//      equals the first non-zero exit in the chain
+//   3. We wrap only tutorial-opt (not FileCheck) so that:
+//        - tutorial-opt's exit 1 → swallowed by || true
+//        - FileCheck's exit code → still propagates (if pattern fails, test fails)
 // Ensure the checker reports an error when noise exceeds the maximum.
 
 // CHECK: error: 'noisy.mul' op Noise value 50 exceeds the maximum allowable noise of 26.

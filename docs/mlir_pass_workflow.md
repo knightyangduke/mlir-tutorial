@@ -1,8 +1,301 @@
-# How to find unimplemented methods in an MLIR pass
+# MLIR Pass Creation Workflow
 
-## Background: what you must implement
+This document describes the end-to-end workflow for creating and adding a new MLIR pass in this project, using `OptimizePolyConst` as a concrete example.
 
-MLIR tablegen generates a CRTP base class `XxxBase<DerivedT>` (in the `.inc` file)
+## Overview
+
+Creating an MLIR pass involves four layers:
+
+```
+  Passes.td       — TableGen declaration
+       ↓
+  mlir-tblgen     — generates Passes.h.inc
+       ↓
+  Passes.h.inc    — macro-guarded declarations & definitions
+       ↓
+  YourPass.h      — include .inc with GEN_PASS_DECL_*
+  YourPass.cpp    — include .inc with GEN_PASS_DEF_*, implement patterns & pass
+```
+
+## Step-by-Step
+
+### 1. Define the Pass in TableGen
+
+**File:** `lib/Transform/<YourDir>/Passes.td`
+
+```tablegen
+#ifndef LIB_TRANSFORM_<YOURDIR>_PASSES_TD_
+#define LIB_TRANSFORM_<YOURDIR>_PASSES_TD_
+
+include "mlir/Pass/PassBase.td"
+
+def OptimizePolyConst : Pass<"optimize-poly-const"> {
+  let summary = "Optimize poly constant operations";
+  let description = [{
+    Optimize poly constant operations.
+  }];
+}
+
+#endif
+```
+
+- `def OptimizePolyConst` — the C++ **class name** (TableGen uppercases it for macros)
+- `Pass<"optimize-poly-const">` — the **CLI argument** (used with `--pass-name` on command line)
+
+### 2. Add TableGen Build Rule
+
+**File:** `lib/Transform/<YourDir>/CMakeLists.txt`
+
+```cmake
+# Tell LLVM's tablegen infrastructure which .td file to process.
+set(LLVM_TARGET_DEFINITIONS Passes.td)
+# Invoke mlir-tblgen with the pass-decls backend to generate Passes.h.inc.
+# The -name <Prefix> flag sets the namespace for generated macros.
+mlir_tablegen(Passes.h.inc -gen-pass-decls -name Poly)
+# Bundle the tablegen output into a custom target for dependency tracking.
+add_public_tablegen_target(MLIR<YourDir>TransformPasses)
+```
+
+**Generated macro names** follow the pattern:
+
+| .td `def` name | Macro |
+|----------------|-------|
+| `OptimizePolyConst` | `GEN_PASS_DECL_OPTIMIZEPOLYCONST` |
+| `OptimizePolyConst` | `GEN_PASS_DEF_OPTIMIZEPOLYCONST` |
+| `OptimizePolyConst` | `GEN_PASS_REGISTRATION` |
+
+The naming is: `GEN_PASS_` + `DECL`/`DEF`/`REGISTRATION` + `_` + **uppercase of the def name**.
+
+### 3. Generate the .inc File Manually (Optional)
+
+```bash
+mlir-tblgen -gen-pass-decls -name Poly \
+  -I /path/to/llvm-project/mlir/include \
+  -I /path/to/your/project \
+  lib/Transform/Poly/Passes.td
+```
+
+This prints the generated file to stdout. Redirect to a file for inspection:
+
+```bash
+mlir-tblgen ... > Passes.h.inc
+```
+
+### 4. Create the Pass Header
+
+**File:** `lib/Transform/<YourDir>/YourPass.h`
+
+```cpp
+#ifndef LIB_TRANSFORM_<YOURDIR>_YOURPASS_H_
+#define LIB_TRANSFORM_<YOURDIR>_YOURPASS_H_
+
+#include "mlir/Pass/Pass.h"
+
+namespace mlir {
+namespace tutorial {
+
+#define GEN_PASS_DECL_OPTIMIZEPOLYCONST
+#include "lib/Transform/<YourDir>/Passes.h.inc"
+
+}  // namespace tutorial
+}  // namespace mlir
+
+#endif
+```
+
+`GEN_PASS_DECL_OPTIMIZEPOLYCONST` expands to:
+
+```cpp
+std::unique_ptr<::mlir::Pass> createOptimizePolyConst();
+```
+
+### 5. Create the Registration Header
+
+**File:** `lib/Transform/<YourDir>/Passes.h`
+
+```cpp
+#ifndef LIB_TRANSFORM_<YOURDIR>_PASSES_H_
+#define LIB_TRANSFORM_<YOURDIR>_PASSES_H_
+
+#include "lib/Transform/<YourDir>/YourPass.h"
+
+namespace mlir {
+namespace tutorial {
+namespace <yourdir> {    // optional — consistent with project convention
+
+#define GEN_PASS_REGISTRATION
+#include "lib/Transform/<YourDir>/Passes.h.inc"
+
+}  // namespace <yourdir>
+}  // namespace tutorial
+}  // namespace mlir
+
+#endif
+```
+
+`GEN_PASS_REGISTRATION` generates registration functions like `registerOptimizePolyConst()` and `register<Prefix>Passes()`.
+
+### 6. Implement the Pass
+
+**File:** `lib/Transform/<YourDir>/YourPass.cpp`
+
+#### 6a. Include headers and define the pass macro
+
+```cpp
+#include "lib/Dialect/<YourDialect>/<YourDialect>Ops.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Pass/Pass.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+
+namespace mlir {
+namespace tutorial {
+
+#define GEN_PASS_DEF_OPTIMIZEPOLYCONST
+#include "lib/Transform/<YourDir>/Passes.h.inc"
+```
+
+`GEN_PASS_DEF_OPTIMIZEPOLYCONST` expands to:
+- A forward declaration: `impl::createOptimizePolyConst()`
+- A CRTP base class: `impl::OptimizePolyConstBase<DerivedT>`
+- The public function: `createOptimizePolyConst()`
+
+#### 6b. Define rewrite patterns
+
+```cpp
+using poly::ConstantOp;
+using poly::MulOp;
+
+struct MultiplyConstOne : public OpRewritePattern<MulOp> {
+  MultiplyConstOne(mlir::MLIRContext *context)
+      : OpRewritePattern<MulOp>(context, /*benefit=*/2) {}
+
+  LogicalResult matchAndRewrite(MulOp op,
+                                PatternRewriter &rewriter) const override {
+    // ... matching & rewriting logic ...
+    return success();
+  }
+};
+```
+
+#### 6c. Define the pass class (CRTP)
+
+```cpp
+struct OptimizePolyConst
+    : impl::OptimizePolyConstBase<OptimizePolyConst> {
+  using OptimizePolyConstBase::OptimizePolyConstBase;
+
+  void runOnOperation() {
+    mlir::RewritePatternSet patterns(&getContext());
+    patterns.add<MultiplyConstOne>(&getContext());
+    patterns.add<AddConstZero>(&getContext());
+    (void)applyPatternsGreedily(getOperation(), std::move(patterns));
+  }
+};
+
+}  // namespace tutorial
+}  // namespace mlir
+```
+
+**Why CRTP is required**: The generated `OptimizePolyConstBase<DerivedT>` has a `friend` function:
+
+```cpp
+friend std::unique_ptr<::mlir::Pass> createOptimizePolyConst() {
+    return std::make_unique<DerivedT>();
+}
+```
+
+This provides the definition of `impl::createOptimizePolyConst()`, but only when `DerivedT` is instantiated. Without the `struct OptimizePolyConst : impl::OptimizePolyConstBase<OptimizePolyConst>` line, you get an **undefined reference** linker error.
+
+### 7. Add Library Build Rule
+
+**File:** `lib/Transform/<YourDir>/CMakeLists.txt`
+
+```cmake
+add_mlir_library(<YourDir>Transform
+    YourPass.cpp
+
+    ${PROJECT_SOURCE_DIR}/lib/Transform/<YourDir>/
+    ADDITIONAL_HEADER_DIRS
+
+    DEPENDS
+    MLIR<YourDialect>            # dialect library
+    MLIR<YourDir>TransformPasses # tablegen target
+
+    LINK_LIBS PUBLIC
+    MLIR<YourDialect>            # dialect ops/types
+)
+```
+
+### 8. Register the Subdirectory
+
+**File:** `lib/Transform/CMakeLists.txt`
+
+```cmake
+add_subdirectory(<YourDir>)
+```
+
+### 9. Link into tutorial-opt
+
+**File:** `tools/CMakeLists.txt`
+
+```cmake
+set (LIBS
+    ...
+    <YourDir>Transform     # add to the list
+)
+```
+
+### 10. Register Passes in tutorial-opt
+
+**File:** `tools/tutorial-opt.cpp`
+
+```cpp
+#include "lib/Transform/<YourDir>/Passes.h"
+
+// In main():
+mlir::tutorial::<yourdir>::register<YourDir>Passes();
+```
+
+## Namespace Convention
+
+The registration function's namespace depends on how `GEN_PASS_REGISTRATION` is wrapped in `Passes.h`:
+
+```cpp
+// If wrapped in an extra namespace:
+namespace mlir::tutorial::poly {
+  #define GEN_PASS_REGISTRATION
+  #include ...
+}
+// → call: mlir::tutorial::poly::registerPolyPasses();
+
+// If only in tutorial:
+namespace mlir::tutorial {
+  #define GEN_PASS_REGISTRATION
+  #include ...
+}
+// → call: mlir::tutorial::registerPolyPasses();
+```
+
+Check your `Passes.h` to determine the correct namespace.
+
+## Generated File Structure
+
+```
+Passes.h.inc
+├── #ifdef GEN_PASS_DECL
+│   ├── #define GEN_PASS_DECL_OPTIMIZEPOLYCONST
+│   └── #undef GEN_PASS_DECL
+├── #ifdef GEN_PASS_DECL_OPTIMIZEPOLYCONST
+│   └── std::unique_ptr<Pass> createOptimizePolyConst();
+├── #ifdef GEN_PASS_DEF_OPTIMIZEPOLYCONST
+│   ├── namespace impl { createOptimizePolyConst(); }
+│   ├── template<DerivedT> class OptimizePolyConstBase { ... }
+│   └── createOptimizePolyConst() { return impl::createOptimizePolyConst(); }
+├── #ifdef GEN_PASS_REGISTRATION
+│   └── registerOptimizePolyConst(), registerPolyPasses()
+└── #ifdef GEN_PASS_CLASSES (deprecated)
+    └── template<DerivedT> class OptimizePolyConstBase { ... }
+```
 that provides all pass boilerplate: `getArgument`, `getName`, `clonePass`,
 `getDependentDialects`, etc. The only method you **must** implement in your
 concrete struct is:

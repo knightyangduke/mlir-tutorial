@@ -13,6 +13,7 @@ add_mlir_library(AffineFullUnroll
     # that belong to this library. Using PROJECT_SOURCE_DIR makes the path
     # absolute and independent of the build directory.
     ${PROJECT_SOURCE_DIR}/lib/Transform/Affine/
+    ${PROJECT_SOURCE_DIR}/lib/Utility/
     ADDITIONAL_HEADER_DIRS
 
     # List build targets that must be completed before this library is built.
@@ -23,7 +24,6 @@ add_mlir_library(AffineFullUnroll
 
     # Libraries to link into this target (with PUBLIC visibility so that
     # consumers of AffineFullUnroll also transitively see these dependencies).
-    # Currently empty — add MLIR/LLVM libs here as needed (e.g. MLIRAffineDialect).
     LINK_LIBS PUBLIC
 )
 

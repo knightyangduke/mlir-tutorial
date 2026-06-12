@@ -3,6 +3,7 @@ add_mlir_library(NoisyPasses
     ReduceNoiseOptimizer.cpp
 
     ${PROJECT_SOURCE_DIR}/lib/Transform/Noisy/
+    ${PROJECT_SOURCE_DIR}/lib/Utility/
     ADDITIONAL_HEADER_DIRS
 
     DEPENDS

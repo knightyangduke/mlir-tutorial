@@ -10,6 +10,7 @@ add_mlir_library(MulToAdd
     MulToShift.cpp
 
     ${PROJECT_SOURCE_DIR}/lib/Transform/Arith/
+    ${PROJECT_SOURCE_DIR}/lib/Utility/
     ADDITIONAL_HEADER_DIRS
 
     DEPENDS

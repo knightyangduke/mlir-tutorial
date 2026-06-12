@@ -1,8 +1,11 @@
 #include "lib/Dialect/Poly/PolyDialect.h"
 
 #include "lib/Dialect/Poly/PolyOps.h"
+#include "lib/Dialect/Poly/PolyReductionPatterns.h"
 #include "lib/Dialect/Poly/PolyTypes.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Reducer/ReductionPatternInterface.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 #include "lib/Dialect/Poly/PolyDialect.cpp.inc"
@@ -15,6 +18,24 @@ namespace mlir {
 namespace tutorial {
 namespace poly {
 
+//===----------------------------------------------------------------------===//
+// PolyReductionPatternInterface
+//
+// Provides reduction patterns to mlir-reduce so it can simplify poly
+// operations (e.g., eliminating identity multiplies/adds) to produce
+// smaller IR while preserving the interestingness condition.
+//===----------------------------------------------------------------------===//
+namespace {
+struct PolyReductionPatternInterface : public DialectReductionPatternInterface {
+  PolyReductionPatternInterface(Dialect *dialect)
+      : DialectReductionPatternInterface(dialect) {}
+
+  void populateReductionPatterns(RewritePatternSet &patterns) const final {
+    populatePolyReductionPatterns(patterns);
+  }
+};
+} // namespace
+
 void PolyDialect::initialize() {
   addTypes<
 #define GET_TYPEDEF_LIST
@@ -24,6 +45,7 @@ void PolyDialect::initialize() {
 #define GET_OP_LIST
 #include "lib/Dialect/Poly/PolyOps.cpp.inc"
       >();
+  addInterface<PolyReductionPatternInterface>();
 }
 
 // Required by the dialect interface so that MLIR's constant folding and

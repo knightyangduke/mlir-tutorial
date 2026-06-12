@@ -2,6 +2,7 @@ add_mlir_library(PolyToStandard
   PolyToStandard.cpp
 
   ${PROJECT_SOURCE_DIR}/lib/Conversion/PolyToStandard/
+  ${PROJECT_SOURCE_DIR}/lib/Utility/
   ADDITIONAL_HEADER_DIRS
 
   DEPENDS
@@ -20,7 +21,7 @@ add_mlir_library(PolyToStandard
   MLIRSCFDialect
   MLIRTensorDialect
   MLIRTransforms
-  )
+)
 
 set(LLVM_TARGET_DEFINITIONS PolyToStandard.td)
 mlir_tablegen(PolyToStandard.h.inc -gen-pass-decls -name PolyToStandard)

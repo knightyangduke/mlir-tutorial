@@ -2,11 +2,78 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug tutorial-opt",
+            "name": "Debug tutorial-opt (current file)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build-ninja/tools/tutorial-opt",
-            "args": ["-sccp", "../tests/sccp.mlir"],
+            "args": [
+                "-sccp",
+                "${file}"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build-ninja",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                  "description": "Load LLVM pretty-printers",
+                  "text": "python import sys; sys.path.insert(0, '/home/yeyang/llvm-project/llvm/utils/gdb-scripts'); import prettyprinters",
+                  "ignoreFailures": true
+                },
+                {
+                  "description": "Load MLIR debug helpers",
+                  "text": "source ${workspaceFolder}/.vscode/gdb_mlir_helpers.py",
+                  "ignoreFailures": false
+                }
+            ]
+        },
+        {
+            "name": "Debug tutorial-opt (ask me)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-ninja/tools/tutorial-opt",
+            "args": [
+                "${input:askPasses}",
+                "${input:askMlirFile}"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build-ninja",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                  "description": "Load LLVM pretty-printers",
+                  "text": "python import sys; sys.path.insert(0, '/home/yeyang/llvm-project/llvm/utils/gdb-scripts'); import prettyprinters",
+                  "ignoreFailures": true
+                },
+                {
+                  "description": "Load MLIR debug helpers",
+                  "text": "source ${workspaceFolder}/.vscode/gdb_mlir_helpers.py",
+                  "ignoreFailures": false
+                }
+            ]
+        },
+        {
+            "name": "Debug --optimize-poly-const (poly_const_optimize.mlir)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-ninja/tools/tutorial-opt",
+            "args": [
+                "--optimize-poly-const",
+                "${workspaceFolder}/tests/poly_const_optimize.mlir"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build-ninja",
             "environment": [],
@@ -24,6 +91,20 @@
                   "ignoreFailures": true
                 }
             ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "askPasses",
+            "type": "promptString",
+            "description": "Enter passes/flags (e.g. --optimize-poly-const --canonicalize)",
+            "default": "--optimize-poly-const"
+        },
+        {
+            "id": "askMlirFile",
+            "type": "promptString",
+            "description": "Enter the MLIR test file path (relative to workspace root)",
+            "default": "tests/poly_const_optimize.mlir"
         }
     ]
 }

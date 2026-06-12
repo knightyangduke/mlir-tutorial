@@ -1,51 +1,80 @@
-# Collect all MLIR dialect & conversion libraries registered globally by MLIR's
-# add_mlir_dialect_library / add_mlir_conversion_library macros.
-# These include the core dialects (Arith, Func, Tensor, Complex, etc.) that
-# our code depends on transitively.
+# Collect all registered MLIR dialect and conversion libraries.
+# These are populated by add_mlir_dialect_library() and add_mlir_conversion_library()
+# throughout the project.
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
-# ---- tutorial-opt: the main pass-driver binary, like mlir-opt ----
+# --- tutorial-opt: the main MLIR test driver ---
+# Links together all dialect, conversion, and transform libraries so that
+# tutorial-opt can parse, optimize, and lower any dialect used in this project.
 set (LIBS
-    ${dialect_libs}
-    ${conversion_libs}
-    AffineFullUnroll          # our Affine full-unroll pass
-    MLIRNoisy                 # the Noisy dialect library
-    MLIROptLib                # MLIR's MlirOptMain entry point
-    MLIRPass                  # MLIR pass infrastructure
-    MLIRPoly                  # the Poly dialect library
-    MulToAdd                  # our MulToAdd pass
-    NoisyPasses               # passes for the Noisy dialect
-    PolyToStandard            # Poly → Standard lowering
-    ortools::ortools          # Google OR-Tools (used by some passes)
+    ${dialect_libs}              # All MLIR dialects (including Poly, Noisy, etc.)
+    ${conversion_libs}           # All MLIR conversion passes
+    AffineFullUnroll             # Affine full-unrolling transform pass
+    MLIRNoisy                    # Noisy dialect library
+    MLIROptLib                   # Core MLIR-opt support library
+    MLIRPass                     # MLIR pass infrastructure
+    MLIRPoly                     # Poly dialect library
+    MulToAdd                     # Arith Mul→Add transform pass
+    NoisyPasses                  # Noisy transform passes (ReduceNoiseChecker, etc.)
+    PolyToStandard               # Poly → Standard conversion pass
+    PolyTransform                # Poly transform passes (MultiplyConstOne, AddConstZero, etc.)
+    ortools::ortools             # OR-Tools (used by Noisy dialect)
 )
 
-# Build the tutorial-opt executable from a single source file.
-# PARTIAL_SOURCES_INTENDED is required because this directory has multiple
-# targets (tutorial-opt + tutorial-lsp-server) that each use different sources.
-add_llvm_executable(tutorial-opt PARTIAL_SOURCES_INTENDED tutorial-opt.cpp)
+# Build the tutorial-opt executable from tutorial-opt.cpp.
+# PARTIAL_SOURCES_INTENDED tells LLVM's build system that only a subset of
+# source files are listed here; it prevents automatic source scanning.
+add_llvm_executable(tutorial-opt PARTIAL_SOURCES_INTENDED
+    tutorial-opt.cpp
+    ${PROJECT_SOURCE_DIR}/lib/Utility/DebugHelper.cpp
+)
 
-# Propagate LLVM compile flags (warnings, optimization level, etc.) to this target.
+# Apply LLVM compile flags (warnings, optimization level, etc.).
 llvm_update_compile_flags(tutorial-opt)
-# Link all the dialect, conversion, and pass libraries listed above.
+# Disable --gc-sections so debug helper symbols survive in the binary for GDB.
+target_link_options(tutorial-opt PRIVATE -Wl,--no-gc-sections)
+# Link all the libraries listed above.
+# PRIVATE means these libraries are linked only into tutorial-opt itself,
+# and are NOT propagated to anything that depends on tutorial-opt
+# (which is fine since tutorial-opt is a final executable, not a library).
 target_link_libraries(tutorial-opt PRIVATE ${LIBS})
 
-# Verify that all linked libraries are actually used (no dead references).
+# Verify that all linked libraries actually exist.
 mlir_check_all_link_libraries(tutorial-opt)
 
-# ---- tutorial-lsp-server: LSP language server for .mlir files ----
-# Provides hover, completion, go-to-definition (SSA values/symbols),
-# and find-references for the Poly and Noisy dialects.
+# --- tutorial-lsp-server: the MLIR language server ---
+# Provides IDE features (code completion, go-to-definition, etc.) for MLIR files.
 set(LSP_LIBS
-    ${dialect_libs}            # all MLIR core dialects so the server can parse them
-    MLIRLspServerLib           # MLIR's LSP server library (MlirLspServerMain)
-    MLIRPoly                    # Poly dialect (operations, types, parsing)
-    MLIRNoisy                   # Noisy dialect (operations, types, parsing)
+    ${dialect_libs}
+    MLIRLspServerLib           # MLIR's LSP server framework
+    MLIRPoly                   # Poly dialect (for .mlir files using poly dialect)
+    MLIRNoisy                  # Noisy dialect (for .mlir files using noisy dialect)
 )
 
 add_llvm_executable(tutorial-lsp-server PARTIAL_SOURCES_INTENDED tutorial-lsp-server.cpp)
 
 llvm_update_compile_flags(tutorial-lsp-server)
+# PRIVATE: LSP libraries are linked only into this executable, not propagated.
 target_link_libraries(tutorial-lsp-server PRIVATE ${LSP_LIBS})
 
 mlir_check_all_link_libraries(tutorial-lsp-server)
+
+# --- tutorial-reduce: the Poly-aware mlir-reduce driver ---
+# A custom mlir-reduce binary that loads all dialects (including poly, which
+# registers PolyReductionPatternInterface) so that poly reduction patterns
+# are automatically picked up during reduction.
+set(REDUCE_LIBS
+    ${dialect_libs}            # All MLIR dialects (func, arith, poly, etc.)
+    ${conversion_libs}         # All MLIR conversion passes
+    MLIRReduceLib              # mlir-reduce framework (MlirReduceMain)
+    MLIRPoly                   # Poly dialect (registers reduction patterns)
+    PolyTransform              # Poly transform passes (--optimize-poly-const)
+)
+
+add_llvm_executable(tutorial-reduce PARTIAL_SOURCES_INTENDED tutorial-reduce.cpp)
+
+llvm_update_compile_flags(tutorial-reduce)
+target_link_libraries(tutorial-reduce PRIVATE ${REDUCE_LIBS})
+
+mlir_check_all_link_libraries(tutorial-reduce)
