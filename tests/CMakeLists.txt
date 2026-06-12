@@ -10,6 +10,7 @@ set (MLIR_TUTORIAL_TEST_DEPENDS
     mlir-opt
     mlir-runner
     tutorial-opt
+    tutorial-reduce
 )
 
 add_lit_testsuite(check-mlir-tutorial "Running the MLIR tutorial regression tests"

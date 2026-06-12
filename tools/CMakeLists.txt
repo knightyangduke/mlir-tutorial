@@ -59,3 +59,22 @@ llvm_update_compile_flags(tutorial-lsp-server)
 target_link_libraries(tutorial-lsp-server PRIVATE ${LSP_LIBS})
 
 mlir_check_all_link_libraries(tutorial-lsp-server)
+
+# --- tutorial-reduce: the Poly-aware mlir-reduce driver ---
+# A custom mlir-reduce binary that loads all dialects (including poly, which
+# registers PolyReductionPatternInterface) so that poly reduction patterns
+# are automatically picked up during reduction.
+set(REDUCE_LIBS
+    ${dialect_libs}            # All MLIR dialects (func, arith, poly, etc.)
+    ${conversion_libs}         # All MLIR conversion passes
+    MLIRReduceLib              # mlir-reduce framework (MlirReduceMain)
+    MLIRPoly                   # Poly dialect (registers reduction patterns)
+    PolyTransform              # Poly transform passes (--optimize-poly-const)
+)
+
+add_llvm_executable(tutorial-reduce PARTIAL_SOURCES_INTENDED tutorial-reduce.cpp)
+
+llvm_update_compile_flags(tutorial-reduce)
+target_link_libraries(tutorial-reduce PRIVATE ${REDUCE_LIBS})
+
+mlir_check_all_link_libraries(tutorial-reduce)

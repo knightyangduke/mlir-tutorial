@@ -30,16 +30,19 @@ mlir_tablegen(PolyCanonicalize.cpp.inc -gen-rewriters) # C++ rewrite pattern boi
 add_public_tablegen_target(MLIRPolyCanonicalizationIncGen) # also appended to LLVM_COMMON_DEPENDS
 
 # --- C++ library ---
-# Compiles PolyDialect.cpp and PolyOps.cpp into the MLIRPoly library.
-# Automatically links MLIR core libs and depends on both tablegen targets
+# Compiles PolyDialect.cpp, PolyOps.cpp, and PolyReductionPatterns.cpp
+# into the MLIRPoly library.
+# Automatically links MLIR core libs and depends on tablegen targets
 # above via LLVM_COMMON_DEPENDS (no manual add_dependencies needed).
 add_mlir_dialect_library(MLIRPoly
     PolyDialect.cpp
     PolyOps.cpp
+    PolyReductionPatterns.cpp
 
     ADDITIONAL_HEADER_DIRS
     ${PROJECT_SOURCE_DIR}/lib/Dialect/Poly  # allows #include "PolyOps.h" etc.
     ${PROJECT_SOURCE_DIR}/lib/Utility/
 
     LINK_LIBS PUBLIC
+    MLIRReduceLib
     )
