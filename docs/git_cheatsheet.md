@@ -160,3 +160,70 @@ git commit --amend
 # 重置到某个提交（谨慎使用）
 git reset --hard <commit-hash>
 ```
+
+## Rebase vs Merge
+
+**Golden rule:** rebase for local/personal cleanup, merge for shared/public history.
+
+### Rebase — replay your commits on top of a new base
+
+Rewrites commit hashes. Use when your branch is yours alone and not yet shared.
+
+```bash
+# Keep your feature branch up to date with main (before opening a PR)
+git fetch origin
+git rebase origin/main
+
+# Interactive rebase: squash/reorder your own unpushed commits
+git rebase -i HEAD~3
+```
+
+Before rebase:
+```
+main:            A → B → C → M
+your-branch:     A → B → C → X    (diverged at C)
+```
+After `git rebase origin/main` on your-branch:
+```
+your-branch:     A → B → C → M → X'   (X replayed on top, new hash)
+```
+
+**Never rebase commits already pushed to a branch others are working from** — it rewrites hashes and breaks their copies.
+
+### Merge — join two lines of history with a merge commit
+
+Does not rewrite history. Use when integrating a finished feature into a shared branch.
+
+```bash
+# Merge your feature into main (preserves when the feature landed)
+git checkout main
+git merge --no-ff new_poly_pattern
+```
+
+Before merge:
+```
+main:            A → B → C
+your-branch:             C → X → Y
+```
+After merge (run on main):
+```
+main:            A → B → C ------→ M   (merge commit documents when feature landed)
+                              ↗
+your-branch:             C → X → Y    (your branch pointer unchanged)
+```
+
+Note: `your-branch` is **not** updated by this — it still points to `Y`. If you continue work on the branch and want it to reflect main's new state:
+
+```bash
+git checkout your-branch
+git rebase origin/main   # bring main's new commits into your branch
+```
+
+### Quick decision guide
+
+| Situation | Use |
+|---|---|
+| Syncing feature branch with updated main | `rebase` |
+| Cleaning up unpushed commits before PR | `rebase -i` |
+| Integrating finished feature into main | `merge --no-ff` |
+| Branch already shared / others pulled it | `merge` (never rebase) |
