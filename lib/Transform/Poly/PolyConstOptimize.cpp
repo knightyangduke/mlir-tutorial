@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lib/Dialect/Poly/PolyReductionPatterns.h"
+#include "lib/Utility/CustomPrintIRHandler.hpp"
 #include "lib/Utility/DebugHelper.h"
 #include "mlir/IR/PatternMatch.h"
 
@@ -27,11 +28,18 @@ struct OptimizePolyConst
   using OptimizePolyConstBase::OptimizePolyConstBase;
 
   void runOnOperation() {
-    llvm::errs() << "OptimizePolyConst pass running\n";
-    llvm::errs().flush();
+    // Register the debug handler for this pass run. It intercepts any action
+    // whose tag matches --my-debug-tag (e.g. "poly-optimize-add" or
+    // "poly-optimize-mul") and prints the enclosing func.func before/after.
+    CustomPrintIRHandler handler;
+    getContext().registerActionHandler(handler);
+
     mlir::RewritePatternSet patterns(&getContext());
     poly::populatePolyReductionPatterns(patterns);
     (void)applyPatternsGreedily(getOperation(), std::move(patterns));
+
+    // Clear the handler so it doesn't outlive this pass invocation.
+    getContext().registerActionHandler(nullptr);
   }
 };
 
