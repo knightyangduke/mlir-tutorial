@@ -1,4 +1,0 @@
-tests/poly_syntax.mlir:30:21: error: 'arith.muli' op operand #0 must be signless-integer-like, but got 'complex<f64>'
-    %complex_eval = poly.eval %4, %z : (!poly.poly<10>, complex<f64>) -> complex<f64>
-                    ^
-tests/poly_syntax.mlir:30:21: note: see current operation: %40 = "arith.muli"(%17, %arg6) <{overflowFlags = #arith.overflow<none>}> : (complex<f64>, i32) -> complex<f64>

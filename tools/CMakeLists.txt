@@ -28,6 +28,7 @@ set (LIBS
 add_llvm_executable(tutorial-opt PARTIAL_SOURCES_INTENDED
     tutorial-opt.cpp
     ${PROJECT_SOURCE_DIR}/lib/Utility/DebugHelper.cpp
+    ${PROJECT_SOURCE_DIR}/lib/Utility/CustomPrintIRHandler.cpp
 )
 
 # Apply LLVM compile flags (warnings, optimization level, etc.).

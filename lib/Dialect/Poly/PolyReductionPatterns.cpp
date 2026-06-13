@@ -7,6 +7,10 @@
 
 #include "lib/Dialect/Poly/PolyReductionPatterns.h"
 #include "lib/Dialect/Poly/PolyOps.h"
+#include "lib/Utility/PolyOptimizeAddAction.hpp"
+#include "lib/Utility/PolyOptmizeMulAction.hpp"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/MLIRContext.h"
 
 namespace mlir {
 namespace tutorial {
@@ -46,7 +50,12 @@ struct MultiplyConstOne : public OpRewritePattern<MulOp> {
       return failure();
     }
 
-    rewriter.replaceOp(op, nonConst);
+    // Wrap the rewrite in a PolyOptmizeMul action so the handler can
+    // intercept it when --my-debug-tag=poly-optimize-mul is passed.
+    mlir::Operation *parentFunc = op->getParentOfType<mlir::func::FuncOp>();
+    mlir::IRUnit irUnit = parentFunc ? parentFunc : static_cast<mlir::Operation *>(op);
+    op->getContext()->executeAction<mlir::tracing::PolyOptmizeMul>(
+        [&]() { rewriter.replaceOp(op, nonConst); }, {irUnit});
     return success();
   }
 };
@@ -84,7 +93,12 @@ struct AddConstZero : public OpRewritePattern<AddOp> {
       return failure();
     }
 
-    rewriter.replaceOp(op, nonConst);
+    // Wrap the rewrite in a PolyOptmizeAdd action so the handler can
+    // intercept it when --my-debug-tag=poly-optimize-add is passed.
+    mlir::Operation *parentFunc = op->getParentOfType<mlir::func::FuncOp>();
+    mlir::IRUnit irUnit = parentFunc ? parentFunc : static_cast<mlir::Operation *>(op);
+    op->getContext()->executeAction<mlir::tracing::PolyOptmizeAdd>(
+        [&]() { rewriter.replaceOp(op, nonConst); }, {irUnit});
     return success();
   }
 };
